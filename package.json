@@ -1,0 +1,40 @@
+{
+  "name": "@voxeline/mesher",
+  "version": "0.1.0",
+  "description": "Voxel mesher template",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "clean": "rimraf lib",
+    "build": "npm run clean && tsc",
+    "build:watch": "npm run build -- --watch",
+    "build:demo": "cd demo && npm install",
+    "start": "npm run build:watch",
+    "start:demo": "npm run build:demo && cd demo && npm start",
+    "lint": "tslint -c tslint.json \"src/**/*.ts\" \"demo/src/**/*.ts\"",
+    "test": "npm run lint",
+    "preversion": "npm run prepublish",
+    "prepublish": "npm run build && npm test",
+    "publish": "npm run build:demo && npm run gh-pages",
+    "gh-pages": "gh-pages -d demo/dist"
+  },
+  "author": "Giff Song <giff.song@gmail.com>",
+  "license": "MIT",
+  "repository": "voxeline/mesher",
+  "files": [
+    "src",
+    "lib"
+  ],
+  "dependencies": {
+    "@types/ndarray": "^1.0.1",
+    "greedy-mesher": "^1.0.3",
+    "ndarray": "^1.0.18",
+    "ndarray-ops-typed": "^0.1.4"
+  },
+  "devDependencies": {
+    "gh-pages": "^0.11.0",
+    "rimraf": "^2.5.4",
+    "tslint": "^3.15.1",
+    "typescript": "^2.0.6"
+  }
+}

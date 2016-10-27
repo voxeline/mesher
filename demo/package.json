@@ -1,0 +1,24 @@
+{
+  "scripts": {
+    "build": "webpack",
+    "start": "webpack-dev-server",
+    "prepublish": "npm run build"
+  },
+  "dependencies": {
+    "@types/dat-gui": "^0.5.29",
+    "@types/three": "0.0.24",
+    "@types/typedarray-pool": "^1.1.1",
+    "cwise": "^1.0.9",
+    "cwise-compiler": "^1.1.2",
+    "dat.gui": "github:dataarts/dat.gui#v0.6.0",
+    "three": "^0.82.1",
+    "typedarray-pool": "^1.1.0"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^4.0.0",
+    "source-map-loader": "^0.1.5",
+    "ts-loader": "^0.9.5",
+    "webpack": "^1.13.2",
+    "webpack-dev-server": "^1.16.2"
+  }
+}
