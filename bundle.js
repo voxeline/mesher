@@ -50,10 +50,10 @@
 	__webpack_require__(2);
 	var GUI = __webpack_require__(3).GUI;
 	var BasicMesher_1 = __webpack_require__(4);
-	var AoMesher_1 = __webpack_require__(37);
-	var NavMeshMesher_1 = __webpack_require__(38);
-	var utils_1 = __webpack_require__(39);
-	var data_1 = __webpack_require__(40);
+	var AoMesher_1 = __webpack_require__(38);
+	var NavMeshMesher_1 = __webpack_require__(39);
+	var utils_1 = __webpack_require__(40);
+	var data_1 = __webpack_require__(41);
 	// Setup scene
 	var scene = new THREE.Scene();
 	scene.add(new THREE.AxisHelper(30));
@@ -55372,7 +55372,8 @@
 	"use strict";
 	var ndarray = __webpack_require__(23);
 	var assign_1 = __webpack_require__(26);
-	var compileMesher = __webpack_require__(33);
+	var map_1 = __webpack_require__(33);
+	var compileMesher = __webpack_require__(34);
 	var Mesher = (function () {
 	    function Mesher(options) {
 	        if (options === void 0) { options = {}; }
@@ -55386,7 +55387,7 @@
 	        this.unpadSize = options.openEnd ? 2 : 1;
 	        this.planarOffset = 2 - this.unpadSize;
 	    }
-	    Mesher.prototype.pad = function (array) {
+	    Mesher.prototype.pad = function (array, mapper) {
 	        var shape = [
 	            array.shape[0] + this.padSize,
 	            array.shape[1] + this.padSize,
@@ -55395,7 +55396,12 @@
 	        // TODO: Consider using typedarray-pool
 	        var padded = ndarray(new Int32Array(shape[0] * shape[1] * shape[2]), shape);
 	        var dest = padded.lo(1, 1, 1).hi(array.shape[0], array.shape[1], array.shape[2]);
-	        assign_1.default(dest, array);
+	        if (mapper) {
+	            map_1.default(dest, array, mapper);
+	        }
+	        else {
+	            assign_1.default(dest, array);
+	        }
 	        return padded.hi(array.shape[0] + 2, array.shape[1] + 2, array.shape[2] + 2);
 	    };
 	    Mesher.prototype.unpad = function (array) {
@@ -55821,8 +55827,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	var compile = __webpack_require__(27);
-	var makeOp_1 = __webpack_require__(31);
+	var makeOp_1 = __webpack_require__(27);
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.default = makeOp_1.default({
 	    args: ['array', 'array'],
@@ -55835,9 +55840,60 @@
 /* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
+	"use strict";
+	var compile = __webpack_require__(28);
+	var EmptyProc_1 = __webpack_require__(32);
+	function fixup(x) {
+	    if (!x) {
+	        return EmptyProc_1.default;
+	    }
+	    for (var i = 0; i < x.args.length; ++i) {
+	        var a = x.args[i];
+	        if (i === 0) {
+	            x.args[i] = { name: a, lvalue: true, rvalue: !!x.rvalue, count: x.count || 1 };
+	        }
+	        else {
+	            x.args[i] = { name: a, lvalue: false, rvalue: true, count: 1 };
+	        }
+	    }
+	    if (!x.thisVars) {
+	        x.thisVars = [];
+	    }
+	    if (!x.localVars) {
+	        x.localVars = [];
+	    }
+	    return x;
+	}
+	function pcompile(userArgs) {
+	    return compile({
+	        args: userArgs.args,
+	        pre: fixup(userArgs.pre),
+	        body: fixup(userArgs.body),
+	        post: fixup(userArgs.proc),
+	        funcName: userArgs.funcName,
+	    });
+	}
+	function makeOp(userArgs) {
+	    var args = [];
+	    for (var i = 0; i < userArgs.args.length; ++i) {
+	        args.push('a' + i);
+	    }
+	    var wrapper = new Function('P', [
+	        'return function ', userArgs.funcName, '_ndarrayops(', args.join(','), ') {P(', args.join(','), ');return a0}',
+	    ].join(''));
+	    return wrapper(pcompile(userArgs));
+	}
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.default = makeOp;
+	
+
+/***/ },
+/* 28 */
+/***/ function(module, exports, __webpack_require__) {
+
 	"use strict"
 
-	var createThunk = __webpack_require__(28)
+	var createThunk = __webpack_require__(29)
 
 	function Procedure() {
 	  this.argTypes = []
@@ -55947,7 +56003,7 @@
 
 
 /***/ },
-/* 28 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict"
@@ -55975,7 +56031,7 @@
 	//   return thunk(compile.bind1(proc))
 	// }
 
-	var compile = __webpack_require__(29)
+	var compile = __webpack_require__(30)
 
 	function createThunk(proc) {
 	  var code = ["'use strict'", "var CACHED={}"]
@@ -56039,12 +56095,12 @@
 
 
 /***/ },
-/* 29 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict"
 
-	var uniq = __webpack_require__(30)
+	var uniq = __webpack_require__(31)
 
 	// This function generates very simple loops analogous to how you typically traverse arrays (the outermost loop corresponds to the slowest changing index, the innermost loop to the fastest changing index)
 	// TODO: If two arrays have the same strides (and offsets) there is potential for decreasing the number of "pointers" and related variables. The drawback is that the type signature would become more specific and that there would thus be less potential for caching, but it might still be worth it, especially when dealing with large numbers of arguments.
@@ -56399,7 +56455,7 @@
 
 
 /***/ },
-/* 30 */
+/* 31 */
 /***/ function(module, exports) {
 
 	"use strict"
@@ -56462,57 +56518,6 @@
 
 
 /***/ },
-/* 31 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	var compile = __webpack_require__(27);
-	var EmptyProc_1 = __webpack_require__(32);
-	function fixup(x) {
-	    if (!x) {
-	        return EmptyProc_1.default;
-	    }
-	    for (var i = 0; i < x.args.length; ++i) {
-	        var a = x.args[i];
-	        if (i === 0) {
-	            x.args[i] = { name: a, lvalue: true, rvalue: !!x.rvalue, count: x.count || 1 };
-	        }
-	        else {
-	            x.args[i] = { name: a, lvalue: false, rvalue: true, count: 1 };
-	        }
-	    }
-	    if (!x.thisVars) {
-	        x.thisVars = [];
-	    }
-	    if (!x.localVars) {
-	        x.localVars = [];
-	    }
-	    return x;
-	}
-	function pcompile(user_args) {
-	    return compile({
-	        args: user_args.args,
-	        pre: fixup(user_args.pre),
-	        body: fixup(user_args.body),
-	        post: fixup(user_args.proc),
-	        funcName: user_args.funcName
-	    });
-	}
-	function makeOp(user_args) {
-	    var args = [];
-	    for (var i = 0; i < user_args.args.length; ++i) {
-	        args.push("a" + i);
-	    }
-	    var wrapper = new Function("P", [
-	        "return function ", user_args.funcName, "_ndarrayops(", args.join(","), ") {P(", args.join(","), ");return a0}"
-	    ].join(""));
-	    return wrapper(pcompile(user_args));
-	}
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.default = makeOp;
-	
-
-/***/ },
 /* 32 */
 /***/ function(module, exports) {
 
@@ -56530,10 +56535,24 @@
 /* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
+	"use strict";
+	var makeOp_1 = __webpack_require__(27);
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.default = makeOp_1.default({
+	    args: ['array', 'array', 'scalar'],
+	    body: { args: ['a', 'b', 'f'], body: 'a=f(b)' },
+	    funcName: 'map',
+	});
+	
+
+/***/ },
+/* 34 */
+/***/ function(module, exports, __webpack_require__) {
+
 	"use strict"
 
-	var pool = __webpack_require__(34)
-	var uniq = __webpack_require__(30)
+	var pool = __webpack_require__(35)
+	var uniq = __webpack_require__(31)
 	var iota = __webpack_require__(24)
 
 	function generateMesher(order, skip, merge, append, num_options, options, useGetter) {
@@ -56730,13 +56749,13 @@
 
 
 /***/ },
-/* 34 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, Buffer) {'use strict'
 
-	var bits = __webpack_require__(35)
-	var dup = __webpack_require__(36)
+	var bits = __webpack_require__(36)
+	var dup = __webpack_require__(37)
 
 	//Legacy pool support
 	if(!global.__TYPEDARRAY_POOL) {
@@ -56950,7 +56969,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(9).Buffer))
 
 /***/ },
-/* 35 */
+/* 36 */
 /***/ function(module, exports) {
 
 	/**
@@ -57160,7 +57179,7 @@
 
 
 /***/ },
-/* 36 */
+/* 37 */
 /***/ function(module, exports) {
 
 	"use strict"
@@ -57214,7 +57233,7 @@
 	module.exports = dupe
 
 /***/ },
-/* 37 */
+/* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -57483,7 +57502,7 @@
 	
 
 /***/ },
-/* 38 */
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -57554,7 +57573,7 @@
 	
 
 /***/ },
-/* 39 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -57568,12 +57587,12 @@
 	
 
 /***/ },
-/* 40 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
 	var ndarray = __webpack_require__(5);
-	var utils_1 = __webpack_require__(39);
+	var utils_1 = __webpack_require__(40);
 	var shape = [8, 8, 16];
 	var array = ndarray(new Int32Array(shape[0] * shape[1] * shape[2]), shape);
 	utils_1.fill(array, function (idx) {
