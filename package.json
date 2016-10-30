@@ -29,7 +29,7 @@
     "@types/ndarray": "^1.0.1",
     "greedy-mesher": "^1.0.3",
     "ndarray": "^1.0.18",
-    "ndarray-ops-typed": "^0.1.4"
+    "ndarray-ops-typed": "^0.2.0"
   },
   "devDependencies": {
     "gh-pages": "^0.11.0",

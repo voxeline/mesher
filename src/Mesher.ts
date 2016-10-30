@@ -2,6 +2,7 @@ declare const require: any;
 
 import ndarray = require('ndarray');
 import assign from 'ndarray-ops-typed/lib/assign';
+import map from 'ndarray-ops-typed/lib/map';
 const compileMesher = require('greedy-mesher');
 
 export interface MesherOptions {
@@ -34,7 +35,7 @@ abstract class Mesher {
     this.planarOffset = 2 - this.unpadSize;
   }
 
-  pad(array: ndarray) {
+  pad(array: ndarray, mapper?: (v: number) => number) {
     const shape = [
       array.shape[0] + this.padSize,
       array.shape[1] + this.padSize,
@@ -44,7 +45,12 @@ abstract class Mesher {
     // TODO: Consider using typedarray-pool
     const padded = ndarray(new Int32Array(shape[0] * shape[1] * shape[2]), shape);
     const dest = padded.lo(1, 1, 1).hi(array.shape[0], array.shape[1], array.shape[2]);
-    assign(dest, array);
+
+    if (mapper) {
+      map(dest, array, mapper);
+    } else {
+      assign(dest, array);
+    }
 
     return padded.hi(
       array.shape[0] + 2,
